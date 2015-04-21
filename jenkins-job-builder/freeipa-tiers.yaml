@@ -237,30 +237,6 @@
             project: '{prefix}-intree-tests-{project}'
         - trigger:
             project: '{prefix}-outoftree-tests-{project}'
-        - trigger:
-            project: '{prefix}-webui-firefox-{project}-with-dns-with-ca'
-        - trigger:
-            project: '{prefix}-webui-firefox-{project}-no-dns-no-ca'
-        - trigger:
-            project: '{prefix}-integration-{project}-simple_replication'
-        - trigger:
-            project: '{prefix}-integration-{project}-caless'
-        - trigger:
-            project: '{prefix}-integration-{project}-basic_trust'
-        - trigger:
-            project: '{prefix}-integration-{project}-external_ca'
-        - trigger:
-            project: '{prefix}-integration-{project}-forced_client_reenrollment'
-        - trigger:
-            project: '{prefix}-integration-{project}-kerberos_flags'
-        - trigger:
-            project: '{prefix}-integration-{project}-sudo'
-        - trigger:
-            project: '{prefix}-integration-{project}-legacy_clients'
-        - trigger:
-            project: '{prefix}-integration-{project}-service_permissions'
-        - trigger:
-            project: '{prefix}-integration-{project}-backup_and_restore'
 
 - job-template:
     name: '{prefix}-intree-tests-{project}'
@@ -345,42 +321,9 @@
         - nosetests-xunit
         - mail-on-fail:
             report-mail-address: '{report-mail-address}'
-
-- job-template:
-    name: '{prefix}-webui-{browser}-{project}-{prettyname}'
-    node: freeipa-webui-{os}
-    defaults: global
-    description: |
-        Run the FreeIPA Web UI tests on {browser}.
-    wrappers:
-        - workspace-cleanup
-    builders:
-        - clean-up-environment
-        - install-built-rpms:
-            prefix: "{prefix}"
-            project: "{project}"
-            os: "{os}"
-            git-branch: "{git-branch}"
-        - download-certificate
-        - install:
-            options-dns-setup: "{options-dns-setup}"
-            options-ca-setup: "{options-ca-setup}"
-        - install-selenium
-        - install-browser-{browser}
-        - setup-webui-tests:
-            noca: "{noca}"
-            nodns: "{nodns}"
-        - shell: |
-            export DISPLAY=:99
-            /usr/bin/Xvfb $DISPLAY -ac -screen 0 1400x1200x8 > ~/xvfb-stdout 2> ~/xvfb-stderr &
-            sleep 5
-            ipa-run-tests -v --with-xunit --logging-level=INFO test_webui || :
-            kill %1
-        - uninstall
-    publishers:
-        - nosetests-xunit
-        - mail-on-fail:
-            report-mail-address: '{report-mail-address}'
+        - trigger:
+            threshold: SUCCESS
+            project: '{prefix}-integration-{project}-basic_trust'
 
 - job-template:
     name: '{prefix}-integration-{project}-{pretty_name}'
@@ -430,103 +373,11 @@
         - '{prefix}-build-{project}'
         - '{prefix}-check-deps-{project}'
         - '{prefix}-intree-tests-{project}'
-        - '{prefix}-outoftree-tests-{project}'
-        - '{prefix}-webui-{browser}-{project}-{prettyname}':
+        - '{prefix}-outoftree-tests-{project}':
             prettyname: with-dns-with-ca
             noca: False
             nodns: False
             browser: firefox
-        - '{prefix}-webui-{browser}-{project}-{prettyname}':
-            prettyname: no-dns-no-ca
-            noca: True
-            nodns: True
-            browser: firefox
-            options-dns-setup: ""
-            options-ca-setup: >
-                --http_pkcs12 star-cert.p12 \
-                --dirsrv_pkcs12 star-cert.p12 \
-                --http_pin $FREEIPACI_STAR_CERT_PIN --dirsrv_pin $FREEIPACI_STAR_CERT_PIN \
-                --root-ca-file star-cert-ca.crt
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: caless
-            suite: test_integration/test_caless.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                      - name: replica.ipa.test
-                        role: replica
-                      - name: client.ipa.test
-                        role: client
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: simple_replication
-            suite: test_integration/test_simple_replication.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                      - name: replica.ipa.test
-                        role: replica
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: external_ca
-            suite: test_integration/test_external_ca.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: forced_client_reenrollment
-            suite: test_integration/test_forced_client_reenrollment.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                      - name: replica.ipa.test
-                        role: replica
-                      - name: client.ipa.test
-                        role: client
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: kerberos_flags
-            suite: test_integration/test_kerberos_flags.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                      - name: client.ipa.test
-                        role: client
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: sudo
-            suite: test_integration/test_sudo.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                      - name: client.ipa.test
-                        role: client
-                    name: ipa.test
-                    type: IPA
         - '{prefix}-integration-{project}-{pretty_name}':
             pretty_name: basic_trust
             suite: test_integration/test_trust.py
@@ -545,56 +396,7 @@
                         role: ad_subdomain
                     name: ad.test
                     type: AD
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: legacy_clients
-            suite: test_integration/test_legacy_clients.py
-            controller_suffix: '-trusts'
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: trust_master
-                      - name: legacy_client_sssd_redhat.ipa.test
-                        role: legacy_client_sssd_redhat
-                      - name: legacy_client_nss_ldap_redhat.ipa.test
-                        role: legacy_client_nss_ldap_redhat
-                      - name: legacy_client_nss_pam_ldapd_redhat.ipa.test
-                        role: legacy_client_nss_pam_ldapd_redhat
-                    name: ipa.test
-                    type: TRUST_IPA
-                  - hosts:
-                      - name: ad.ad.test
-                        role: ad
-                      - name: child.child.ad.test
-                        role: ad_subdomain
-                    name: ad.test
-                    type: AD
 
-- job-group:
-    name: ipa-4-1-additions
-    jobs:
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: service_permissions
-            suite: test_integration/test_service_permissions.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                    name: ipa.test
-                    type: IPA
-        - '{prefix}-integration-{project}-{pretty_name}':
-            pretty_name: backup_and_restore
-            suite: test_integration/test_backup_and_restore.py
-            controller_suffix: ''
-            config_template: |
-                domains:
-                  - hosts:
-                      - name: master.ipa.test
-                        role: master
-                    name: ipa.test
-                    type: IPA
 
 - job-template:
     name: '{prefix}-stats-{project}'
@@ -640,21 +442,21 @@
             charset: UTF-8
 
 ######### Meta-tests; use these for experimenting
-
-- job-template:
-    name: test1
-    node: master
-    builders:
-        shell: "echo 1"
-
-- job-template:
-    name: test2
-    node: master
-    builders:
-        shell: "echo 1"
-
-- project:
-    name: test
-    jobs:
-        - test1
-        - test2
+# 
+# - job-template:
+#     name: test1
+#     node: master
+#     builders:
+#         shell: "echo 1"
+# 
+# - job-template:
+#     name: test2
+#     node: master
+#     builders:
+#         shell: "echo 1"
+# 
+# - project:
+#     name: test
+#     jobs:
+#         - test1
+#         - test2
